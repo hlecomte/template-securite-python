@@ -15,7 +15,7 @@ def choose_interface() -> str:
 
     :return: network interface
     """
-    parser =argparse.ArgumentParser(description="Choisi l'interface pour sniffer")
+    parser = argparse.ArgumentParser(description="Choisi l'interface pour sniffer")
     parser.add_argument("--iface", type=str, help="selectione l'interface")
 
     args = parser.parse_args()

@@ -15,7 +15,7 @@ class Capture:
         Returns:
 
         """
-        while self.interface is None and self.file is None:
+        while self.interface is "" and self.file is "":
             logger.warning("No capture source specified")
             choix = input("1 : interface réseau | 2 : fichier .pcap : ").strip()
 
@@ -34,7 +34,7 @@ class Capture:
             else:
                 logger.error("Choix indisponible : %r", choix)
 
-        if self.interface is not None:
+        if self.interface is not "":
             self.capture_traffic_from_interface()
         else:
             self.capture_traffic_from_file()
