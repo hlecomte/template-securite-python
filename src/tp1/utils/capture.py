@@ -1,12 +1,18 @@
-from src.tp1.utils.lib import choose_interface
-from src.tp1.utils.lib import choose_file
+from itertools import count
+
+from scapy import packet
+from scapy.interfaces import ifaces
+
+from src.tp1.utils.lib import choose_interface, choose_file
 from tp1.utils.config import logger
+from scapy.all import sniff, rdpcap, wrpcap, PcapReader
 
 
 class Capture:
     def __init__(self) -> None:
         self.interface = choose_interface()
         self.file = choose_file()
+        self.packets = ""
         self.summary = ""
 
     def capture_traffic(self) -> None:
@@ -39,6 +45,7 @@ class Capture:
         else:
             self.capture_traffic_from_file()
 
+
     def capture_traffic_from_interface(self) -> None:
         """
         Capture network traffic from an interface
@@ -46,13 +53,19 @@ class Capture:
         interface = self.interface
         logger.info(f"Capture traffic from interface {interface}")
 
+        self.packets = sniff(ifaces=interface, count=100)
+
+
+
     def capture_traffic_from_file(self) -> None:
         """
         Capture network traffic from a file
         """
         file = self.file
         logger.info(f"Capture traffic from file {file}")
-        return
+
+        self.packets = rdpcap(file)
+
 
     def sort_network_protocols(self) -> str:
         """
@@ -64,6 +77,9 @@ class Capture:
         """
         Return all protocols captured with total packets number
         """
+
+
+
         return ""
 
     def analyse(self, protocols: str) -> None:
