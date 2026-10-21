@@ -1,11 +1,7 @@
-from itertools import count
-
-from scapy import packet
-from scapy.interfaces import ifaces
-
 from src.tp1.utils.lib import choose_interface, choose_file
 from tp1.utils.config import logger
 from scapy.all import sniff, rdpcap, wrpcap, PcapReader
+from collections import Counter, defaultdict
 
 
 class Capture:
@@ -13,6 +9,8 @@ class Capture:
         self.interface = choose_interface()
         self.file = choose_file()
         self.packets = ""
+        self.alerts = None
+        self.all_protocols = None
         self.summary = ""
 
     def capture_traffic(self) -> None:
@@ -67,20 +65,27 @@ class Capture:
         self.packets = rdpcap(file)
 
 
-    def sort_network_protocols(self) -> str:
+    def sort_network_protocols(self) -> dict:
         """
         Sort and return all captured network protocols
         """
-        return ""
+        logger.info(f"Sorting network protocols")
+        protocol_trie = dict(sorted((self.all_protocols.items(), key=lambda item: item[1])))
+        return protocol_trie
 
-    def get_all_protocols(self) -> str:
+    def get_all_protocols(self) -> dict:
         """
         Return all protocols captured with total packets number
         """
 
+        counter = Counter()
 
+        logger.info(f"Comptabilisation of protocols")
+        for pkt in self.packets:
+            for name in {layer.__name__ for layer in pkt.layers()}:
+                counter[name] += 1
 
-        return ""
+        return counter
 
     def analyse(self, protocols: str) -> None:
         """
@@ -94,23 +99,44 @@ class Capture:
         attaquante.
         Sinon a cher que tout va bien
         """
-        all_protocols = self.get_all_protocols()
+        self.all_protocols = self.get_all_protocols()
         sort = self.sort_network_protocols()
-        logger.debug(f"All protocols: {all_protocols}")
+        logger.debug(f"All protocols: {self.all_protocols}")
         logger.debug(f"Sorted protocols: {sort}")
 
+        self.alerts += self.attack_warning(protocols)
         self.summary = self._gen_summary()
 
-    def get_summary(self) -> str:
+    def attack_warning(self, protocoles: str) -> list[Alert]:
         """
-        Return summary
-        :return:
+
+        Returns:
+
         """
-        return self.summary
+        alerts = []
+        for pkt in self.packets:
+            for match in self.rules.match(data=payload):
+                alerts.append(Alert(
+                    attack=match.rule,
+                    protocol="TCP" if pkt.haslayer(protocoles) else "Autre",
+                    ip=self._get_ip(pkt),
+                    mac=self._get_mac(pkt),
+                    details=match.meta.get("description", ""),
+                ))
+
+        return alerts
 
     def _gen_summary(self) -> str:
         """
         Generate  summary
         """
-        summary = ""
+        summary = f"{len(self.packets)} paquets capturés sur {self.interface}.\n Protocoles {self.all_protocols}\n"
+
+        if self.alerts:
+            summary += f"{len(self.alerts)} tentative(s) d'attaque détectée(s) :\n"
+            for alert in self.alerts:
+                summary += f"- {alert.attack} ({alert.protocol}) depuis {alert.ip} / {alert.mac}\n"
+        else:
+            summary += "Aucun trafic illégitime détecté, tout va bien.\n"
+
         return summary
