@@ -1,24 +1,31 @@
-from src.tp1.utils.lib import choose_interface, choose_file
+import os
+from pathlib import Path
+from urllib.parse import unquote_plus
+
+import yara
+from tp1.utils.lib import choose_interface, choose_file
 from tp1.utils.config import logger
-from scapy.all import sniff, rdpcap, wrpcap, PcapReader
-from collections import Counter, defaultdict
+from scapy.all import sniff, rdpcap, Raw, IP, IPv6, Ether
+from collections import Counter
 
 
 class Capture:
-    def __init__(self) -> None:
-        self.interface = choose_interface()
-        self.file = choose_file()
-        self.packets = ""
-        self.alerts = None
-        self.all_protocols = None
-        self.summary = ""
+    class Capture:
+        def __init__(self) -> None:
+            self.interface = choose_interface()
+            self.file = choose_file()
+            self.packets = ""
+            self.alerts = []
+            self.all_protocols = None
+            self.summary = ""
+            self.rules = yara.compile(filepath="../rules/motifs.yar")
 
     def capture_traffic(self) -> None:
         """
         Capture network traffic with the methode choice by user
         Returns:
-
         """
+
         while self.interface is "" and self.file is "":
             logger.warning("No capture source specified")
             choix = input("1 : interface réseau | 2 : fichier .pcap : ").strip()
@@ -43,7 +50,6 @@ class Capture:
         else:
             self.capture_traffic_from_file()
 
-
     def capture_traffic_from_interface(self) -> None:
         """
         Capture network traffic from an interface
@@ -51,14 +57,13 @@ class Capture:
         interface = self.interface
         logger.info(f"Capture traffic from interface {interface}")
 
-        self.packets = sniff(ifaces=interface, count=100)
-
-
+        self.packets = sniff(iface=interface, count=100)
 
     def capture_traffic_from_file(self) -> None:
         """
         Capture network traffic from a file
         """
+
         file = self.file
         logger.info(f"Capture traffic from file {file}")
 
@@ -70,7 +75,7 @@ class Capture:
         Sort and return all captured network protocols
         """
         logger.info(f"Sorting network protocols")
-        protocol_trie = dict(sorted((self.all_protocols.items(), key=lambda item: item[1])))
+        protocol_trie = dict(sorted(self.all_protocols.items(), key=lambda item: item[1]))
         return protocol_trie
 
     def get_all_protocols(self) -> dict:
@@ -115,16 +120,31 @@ class Capture:
         """
         alerts = []
         for pkt in self.packets:
-            for match in self.rules.match(data=payload):
-                alerts.append(Alert(
-                    attack=match.rule,
-                    protocol="TCP" if pkt.haslayer(protocoles) else "Autre",
-                    ip=self._get_ip(pkt),
-                    mac=self._get_mac(pkt),
-                    details=match.meta.get("description", ""),
-                ))
+            if not pkt.haslayer(Raw):
+                continue
+
+            payload = unquote_plus(pkt[Raw].load.decode(errors="ignore"))
+
+        for match in self.rules.match(data=payload):
+            alerts.append({
+                "attack": match.rule,
+                "protocol": "TCP" if pkt.haslayer(protocoles.upper()) else "Autre",
+                "ip": self._get_ip(pkt),
+                "mac": self._get_mac(pkt),
+                "details": match.meta.get("description", ""),
+            })
 
         return alerts
+
+    def _get_ip(pkt):
+        if pkt.haslayer(IP):
+            return pkt[IP].src
+        if pkt.haslayer(IPv6):
+            return pkt[IPv6].src
+        return None
+
+    def _get_mac(pkt):
+        return pkt[Ether].src if pkt.haslayer(Ether) else None
 
     def _gen_summary(self) -> str:
         """
@@ -140,3 +160,12 @@ class Capture:
             summary += "Aucun trafic illégitime détecté, tout va bien.\n"
 
         return summary
+
+
+
+    def get_summary(self) -> str:
+        """
+        Return summary
+        """
+        return self.summary
+

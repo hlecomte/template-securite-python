@@ -38,7 +38,6 @@ class Report:
         Generate graph and array
         """
         if param == "graph":
-            # TODO: generate graph
             graph = ""
             self.graph = graph
         elif param == "array":
