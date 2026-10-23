@@ -17,14 +17,6 @@ def test_when_hello_world_then_return_hello_world():
     # Then
     assert result == string
 
-
-def test_when_choose_interface_then_return_empty_string():
-    # When
-    result = choose_interface()
-
-    # Then
-    assert result == ""
-
 def test_parssing_interface():
     #When
     parser = create_parser()
@@ -59,14 +51,28 @@ def test_choose_interface_when_pcap():
     # Then
     assert result == "./foo.pcap"
 
+def test_choose_interface_when_no_interface():
+    #When
+    result = choose_interface()
+
+    #Then
+    assert result == "wlp6s0"
+
 def test_choose_report_file():
     # When
     parser = create_parser()
-    args = parser.parse_args(["--out", "report.json"])
+    args = parser.parse_args(["--out", "fox.json"])
     result = choose_report_file(args)
 
     # Then
-    assert result == "report.json"
+    assert result == "fox.json"
+
+def test_choose_report_file_when_no_report_file():
+    #When
+    filename = choose_report_file()
+
+    #Then
+    assert filename == "report.json"
 
 def test_passer_argument():
     #When

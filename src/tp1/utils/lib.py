@@ -44,15 +44,11 @@ def choose_interface(args_test=None) -> str:
 
     :return: network interface
     """
-
     if args_test is not None:
         if args_test.iface is not None:
-            interface = args_test.iface
-        else:
-            interface = args_test.pcap
-
-        return interface
-
+            return args_test.iface
+        if args_test.pcap is not None:
+            return args_test.pcap
     args = parse_arguments()
 
     if args.iface is not None:
@@ -62,7 +58,7 @@ def choose_interface(args_test=None) -> str:
     else:
         interface = find_default_interface()
 
-    return interfaces
+    return interface
 
 def choose_report_file(args_test=None) -> str:
     """
@@ -71,11 +67,12 @@ def choose_report_file(args_test=None) -> str:
     :return: report file name
     """
     if args_test is not None:
+        return args_test.out
 
-        filename = args_test.out
-        return filename
-
-    args = parse_arguments()
+    try:
+        args = parse_arguments()
+    except:
+        return "report.json"
 
     filename = args.out
 
