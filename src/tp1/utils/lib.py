@@ -11,21 +11,30 @@ def hello_world() -> str:
     """
     return "hello world"
 
-def parse_arguments() -> list:
+def create_parser():
     """
-    Parse the command line arguments
+    Create the argument parser
 
-    :return: list of arguments
+    :return: argument parser
+
     """
     parser = argparse.ArgumentParser(prog="tp1", description="Network analysis")
     parser.add_argument("--iface", type=str, help="Specifies the interface to sniff")
     parser.add_argument("--pcap", type=str, help="PCAP file to inspect")
     parser.add_argument("--out", type=str, help="Returns the name of the output report")
-    args = parser.parse_args()
 
-    arguments = [args.iface, args.pcap, args.out]
+    return parser
 
-    return arguments
+def parse_arguments():
+    """
+    Parse the command line arguments
+
+    :return: arguments parsed
+    """
+
+    args = create_parser()
+
+    return args.parse_args()
 
 def choose_interface() -> str:
     """
@@ -34,12 +43,14 @@ def choose_interface() -> str:
     :return: network interface
     """
 
-    interface = parse_arguments()
+    args = parse_arguments()
 
-    if interface[0] is not None:
-        return interface[0]
+    if args.iface is not None:
+        interface = args.iface
     else:
-        return interface[1]
+        interface = args.pcap
+
+    return interface
 
 def choose_report_file() -> str:
     """
@@ -47,6 +58,9 @@ def choose_report_file() -> str:
 
     :return: report file name
     """
-    filename = parse_arguments()
 
-    return filename[2]
+    args = parse_arguments()
+
+    filename = args.out
+
+    return filename
