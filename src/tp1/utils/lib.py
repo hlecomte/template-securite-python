@@ -47,4 +47,6 @@ def choose_report_file() -> str:
 
     :return: report file name
     """
-    parser = argparse.ArgumentParser(prog="tp1", description="Network analysis")
+    filename = parse_arguments()
+
+    return filename[2]
