@@ -25,7 +25,7 @@ def create_parser():
 
     return parser
 
-def parse_arguments(args_test):
+def parse_arguments(args_test=None):
     """
     Parse the command line arguments
 
@@ -38,7 +38,7 @@ def parse_arguments(args_test):
 
     return args.parse_args()
 
-def choose_interface(args_test) -> str:
+def choose_interface(args_test=None) -> str:
     """
     Return network interface and input user choice
 
@@ -57,12 +57,14 @@ def choose_interface(args_test) -> str:
 
     if args.iface is not None:
         interface = args.iface
-    else:
+    elif args.pcap is not None:
         interface = args.pcap
+    else:
+        interface = find_default_interface()
 
-    return interface
+    return interfaces
 
-def choose_report_file(args_test) -> str:
+def choose_report_file(args_test=None) -> str:
     """
     Returns the name of the output report
 
@@ -78,3 +80,16 @@ def choose_report_file(args_test) -> str:
     filename = args.out
 
     return filename
+
+def find_default_interface() -> str:
+    route = "/proc/net/route"
+    with open(route) as f:
+        for line in f.readlines():
+            try:
+                iface, dest, _, flags, _, _, _, _, _, _, _, =  line.strip().split()
+                if dest != '00000000' or not int(flags, 16) & 2:
+                    continue
+                return iface
+            except:
+                continue
+

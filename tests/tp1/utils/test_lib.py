@@ -4,7 +4,7 @@ from six import assertRaisesRegex
 
 from src.tp1.utils.lib import hello_world, choose_interface, choose_report_file
 from src.tp1.utils.lib import create_parser ,parse_arguments
-
+from src.tp1.utils.lib import find_default_interface
 
 
 def test_when_hello_world_then_return_hello_world():
@@ -76,3 +76,10 @@ def test_passer_argument():
 
     #Then
     assert result.iface == "eth0"
+
+def test_find_default_interface():
+    #When
+    result = find_default_interface()
+
+    #Then
+    assert result == "wlp6s0"
