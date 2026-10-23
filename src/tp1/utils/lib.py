@@ -1,6 +1,9 @@
 import argparse
+from os import WCONTINUED
 
 from elftools.elf import descriptions
+
+from tp1.utils.config import logger
 
 
 def hello_world() -> str:
@@ -18,6 +21,7 @@ def create_parser():
     :return: argument parser
 
     """
+
     parser = argparse.ArgumentParser(prog="tp1", description="Network analysis")
     parser.add_argument("--iface", type=str, help="Specifies the interface to sniff")
     parser.add_argument("--pcap", type=str, help="PCAP file to inspect")

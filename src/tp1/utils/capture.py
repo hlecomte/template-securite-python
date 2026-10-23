@@ -1,11 +1,13 @@
 from src.tp1.utils.lib import choose_interface
 from tp1.utils.config import logger
+from scapy.all import sniff, rdpcap
 
 
 class Capture:
     def __init__(self) -> None:
         self.interface = choose_interface()
         self.summary = ""
+        self.packet = ""
 
     def capture_traffic(self) -> None:
         """
@@ -13,6 +15,12 @@ class Capture:
         """
         interface = self.interface
         logger.info(f"Capture traffic from interface {interface}")
+
+        if interface[0] or interface[1] is "/":
+            self.packets = rdpcap(interface)
+        else:
+            self.packets = sniff(iface=interface, count=100)
+
 
     def sort_network_protocols(self) -> str:
         """
