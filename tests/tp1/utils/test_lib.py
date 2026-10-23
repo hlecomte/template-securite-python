@@ -1,7 +1,10 @@
 from unittest import result
 
-from src.tp1.utils.lib import hello_world, choose_interface, parse_arguments
-from tp1.utils.lib import create_parser
+from six import assertRaisesRegex
+
+from src.tp1.utils.lib import hello_world, choose_interface, choose_report_file
+from src.tp1.utils.lib import create_parser ,parse_arguments
+
 
 
 def test_when_hello_world_then_return_hello_world():
@@ -50,9 +53,26 @@ def test_choose_interface_when_iface():
 def test_choose_interface_when_pcap():
     #When
     parser = create_parser()
-    parser.parse_args(["--pcap", "./foo.pcap"])
-    result = choose_interface()
+    args = parser.parse_args(["--pcap", "./foo.pcap"])
+    result = choose_interface(args)
 
     # Then
     assert result == "./foo.pcap"
 
+def test_choose_report_file():
+    # When
+    parser = create_parser()
+    args = parser.parse_args(["--out", "report.json"])
+    result = choose_report_file(args)
+
+    # Then
+    assert result == "report.json"
+
+def test_passer_argument():
+    #When
+    parser = create_parser()
+    args = parser.parse_args(["--iface", "eth0"])
+    result = parse_arguments(args)
+
+    #Then
+    assert result.iface == "eth0"

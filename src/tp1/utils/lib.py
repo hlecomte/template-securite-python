@@ -46,10 +46,10 @@ def choose_interface(args_test) -> str:
     """
 
     if args_test is not None:
-        if args.iface is not None:
-            interface = args.iface
+        if args_test.iface is not None:
+            interface = args_test.iface
         else:
-            interface = args.pcap
+            interface = args_test.pcap
 
         return interface
 
