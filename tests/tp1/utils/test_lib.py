@@ -38,3 +38,21 @@ def test_parssing_filename():
     #Then
     assert result.out == "report.json"
 
+def test_choose_interface_when_iface():
+    #When
+    parser = create_parser()
+    parser.parse_args(["--iface", "eth0"])
+    result = choose_interface()
+
+    #Then
+    assert result == "eth0"
+
+def test_choose_interface_when_pcap():
+    #When
+    parser = create_parser()
+    parser.parse_args(["--pcap", "./foo.pcap"])
+    result = choose_interface()
+
+    # Then
+    assert result == "./foo.pcap"
+
