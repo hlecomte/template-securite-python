@@ -25,23 +25,33 @@ def create_parser():
 
     return parser
 
-def parse_arguments():
+def parse_arguments(args_test):
     """
     Parse the command line arguments
 
     :return: arguments parsed
     """
+    if args_test is not None:
+        return args_test
 
     args = create_parser()
 
     return args.parse_args()
 
-def choose_interface() -> str:
+def choose_interface(args_test) -> str:
     """
     Return network interface and input user choice
 
     :return: network interface
     """
+
+    if args_test is not None:
+        if args.iface is not None:
+            interface = args.iface
+        else:
+            interface = args.pcap
+
+        return interface
 
     args = parse_arguments()
 
@@ -52,12 +62,16 @@ def choose_interface() -> str:
 
     return interface
 
-def choose_report_file() -> str:
+def choose_report_file(args_test) -> str:
     """
     Returns the name of the output report
 
     :return: report file name
     """
+    if args_test is not None:
+
+        filename = args_test.out
+        return filename
 
     args = parse_arguments()
 
