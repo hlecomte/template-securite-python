@@ -1,4 +1,5 @@
 from tp1.utils.capture import Capture
+import matplotlib.pyplot as plt
 
 
 class Report:
@@ -37,8 +38,9 @@ class Report:
         """
         Generate graph and array
         """
+        protocols = cap
         if param == "graph":
-            # TODO: generate graph
+            fig, ax = plt.subplots()
             graph = ""
             self.graph = graph
         elif param == "array":

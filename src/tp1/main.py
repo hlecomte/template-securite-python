@@ -1,5 +1,6 @@
 from tp1.utils.capture import Capture
 from tp1.utils.config import logger
+from tp1.utils.lib import choose_report_file
 from tp1.utils.report import Report
 
 
@@ -11,7 +12,7 @@ def main():
     capture.analyse("tcp")
     summary = capture.get_summary()
 
-    filename = "report.pdf"
+    filename = choose_report_file()
     report = Report(capture, filename, summary)
     report.generate("graph")
     report.generate("array")
