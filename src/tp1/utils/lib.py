@@ -2,6 +2,7 @@ import argparse
 from os import WCONTINUED
 
 from elftools.elf import descriptions
+from scapy.interfaces import ifaces
 
 from tp1.utils.config import logger
 
@@ -53,7 +54,11 @@ def choose_interface(args_test=None) -> str:
             return args_test.iface
         if args_test.pcap is not None:
             return args_test.pcap
-    args = parse_arguments()
+    try:
+        args = parse_arguments()
+    except:
+        interface = find_default_interface()
+        return interface
 
     if args.iface is not None:
         interface = args.iface

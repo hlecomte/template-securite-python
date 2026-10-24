@@ -20,7 +20,7 @@ def test_given_capture_when_capture_traffic_then_interface_is_set():
 
     # Then
     # This is a minimal test since the method doesn't do much yet
-    assert capture.interface == ""
+    assert capture.interface == "wlp6s0"
 
 
 def test_sort_network_protocols():

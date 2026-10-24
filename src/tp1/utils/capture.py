@@ -1,6 +1,7 @@
 from src.tp1.utils.lib import choose_interface
 from tp1.utils.config import logger
 from scapy.all import sniff, rdpcap
+from pathlib import Path
 
 
 class Capture:
@@ -16,7 +17,7 @@ class Capture:
         interface = self.interface
         logger.info(f"Capture traffic from interface {interface}")
 
-        if interface[0] or interface[1] is "/":
+        if Path(interface).is_file():
             self.packets = rdpcap(interface)
         else:
             self.packets = sniff(iface=interface, count=100)
