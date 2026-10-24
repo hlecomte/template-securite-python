@@ -1,3 +1,7 @@
+from collections import Counter
+
+from _testcapi import _test_structmembersType_NewAPI
+
 from src.tp1.utils.lib import choose_interface
 from tp1.utils.config import logger
 from scapy.all import sniff, rdpcap
@@ -9,6 +13,7 @@ class Capture:
         self.interface = choose_interface()
         self.summary = ""
         self.packet = ""
+        self.alerts = None
 
     def capture_traffic(self) -> None:
         """
@@ -27,13 +32,24 @@ class Capture:
         """
         Sort and return all captured network protocols
         """
-        return ""
+        logger.info(f"Sorting network protocols")
+        protocols_sorted = dict(sorted(self.packets.protocols.items(), key=lambda item: item[1], reverse=True))
+
+        return protocols_sorted
 
     def get_all_protocols(self) -> str:
         """
         Return all protocols captured with total packets number
         """
-        return ""
+        counter = Counter()
+
+        logger.info(f"Capture all protocols")
+
+        for pkt in self.packets:
+            for name in {layer.__name__ for layer in pkt.layers()}:
+                counter[name] += 1
+
+        return counter
 
     def analyse(self, protocols: str) -> None:
         """
@@ -47,12 +63,15 @@ class Capture:
         attaquante.
         Sinon a cher que tout va bien
         """
+
         all_protocols = self.get_all_protocols()
         sort = self.sort_network_protocols()
         logger.debug(f"All protocols: {all_protocols}")
         logger.debug(f"Sorted protocols: {sort}")
 
         self.summary = self._gen_summary()
+        self.alerts = self._attack_warning(protocols)
+
 
     def get_summary(self) -> str:
         """
@@ -67,3 +86,5 @@ class Capture:
         """
         summary = ""
         return summary
+
+    def _attack_warning(self, protocols: str):
