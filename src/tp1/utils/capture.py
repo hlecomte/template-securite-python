@@ -1,10 +1,9 @@
 from collections import Counter
-
-from _testcapi import _test_structmembersType_NewAPI
-
+import yara
+from urllib.parse import unquote_plus
 from src.tp1.utils.lib import choose_interface
 from tp1.utils.config import logger
-from scapy.all import sniff, rdpcap
+from scapy.all import sniff, rdpcap, Raw, IP, IPv6, Ether
 from pathlib import Path
 
 
@@ -84,7 +83,51 @@ class Capture:
         """
         Generate summary
         """
-        summary = ""
+        summary = f"{len(self.packets)} paquets capturés sur {self.interface}.\n Protocoles {self.all_protocols}\n"
+
+        if self.alerts:
+            summary += f"{len(self.alerts)} tentative(s) d'attaque détectée(s) :\n"
+            for alert in self.alerts:
+                summary += f"- {alert.attack} ({alert.protocol}) depuis {alert.ip} / {alert.mac}\n"
+        else:
+            summary += "Aucun trafic illégitime détecté, tout va bien.\n"
+
         return summary
 
     def _attack_warning(self, protocols: str):
+        """
+
+        Return attack alerts
+
+        :returns: list attack
+
+        """
+        alerts = []
+        rules = yara.compile("../rules/patern.yar")
+
+        for pkt in self.packets:
+            if not pkt.haslayer(Raw):
+                pass
+
+            clean_pkt = unquote_plus(pkt[Raw].load.decode(errors="ignore"))
+
+        for match in rules.match(data=clean_pkt):
+            alerts.append({
+                "attack": match.rule,
+                "protocol": f"{protocols}" if pkt.haslayer(protocols.upper()) else "Autre",
+                "ip": self._get_ip(pkt),
+                "mac": self._get_mac(pkt),
+                "details": match.meta.get("description", ""),
+            })
+
+            return alerts
+
+    def _get_ip(pkt):
+            if pkt.haslayer(IP):
+                return pkt[IP].src
+            if pkt.haslayer(IPv6):
+                return pkt[IPv6].src
+            return None
+
+    def _get_mac(pkt):
+            return pkt[Ether].src if pkt.haslayer(Ether) else None
