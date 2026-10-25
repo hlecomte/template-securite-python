@@ -7,7 +7,7 @@ def test_capture_init():
     capture = Capture()
 
     # Then
-    assert capture.interface == '/home/hlecomte/PycharmProjects/template-securite-python/src/tp1/utils/Capture.pcap'
+    assert capture.interface == '/home/hlecomte/PycharmProjects/template-securite-python/src/tp1/Capture.pcap'
     assert capture.summary == ""
 
 
@@ -20,7 +20,7 @@ def test_given_capture_when_capture_traffic_then_interface_is_set():
 
     # Then
     # This is a minimal test since the method doesn't do much yet
-    assert capture.interface == "./Capture.pcap"
+    assert capture.interface == '/home/hlecomte/PycharmProjects/template-securite-python/src/tp1/Capture.pcap'
 
 def test_get_all_protocols():
     # Given
@@ -31,6 +31,7 @@ def test_get_all_protocols():
     result = capture.get_all_protocols()
 
     # Then
+    assert capture.all_protocols == Counter({'Ether': 143, 'IP': 123, 'TCP': 95, 'ARP': 20, 'ICMP': 16, 'Raw': 13, 'UDP': 12, 'DNS': 12})
     assert result == None  # Method currently returns None
 
 def test_sort_network_protocols():
@@ -43,6 +44,7 @@ def test_sort_network_protocols():
     result = capture.sort_network_protocols()
 
     # Then
+    assert capture.all_protocols == {'DNS': 12, 'UDP': 12, 'Raw': 13, 'ICMP': 16, 'ARP': 20, 'TCP': 95, 'IP': 123, 'Ether': 143}
     assert result == None # Method currently returns None
 
 
@@ -66,6 +68,17 @@ def test_analyse():
     mock_gen_summary.assert_called_once()
     assert capture.summary == "Test summary"
 
+def test_attack_warning():
+    # Given
+    capture = Capture()
+    capture.capture_traffic()
+
+    # When
+    capture._attack_warning("tcp")
+
+    # Then
+    assert capture.alerts == []
+
 def test_annalyse():
     # Given
     capture = Capture()
@@ -73,6 +86,9 @@ def test_annalyse():
 
     # When
     capture.analyse("tcp")
+
+    # Then
+    assert capture.summary == {'summary': {'DNS': 12, 'UDP': 12, 'Raw': 13, 'ICMP': 16, 'ARP': 20, 'TCP': 95, 'IP': 123, 'Ether': 143}, 'alerts': []}
 
 def test_get_summary():
     # Given

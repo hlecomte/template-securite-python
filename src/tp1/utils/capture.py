@@ -15,6 +15,7 @@ class Capture:
         self.summary = ""
         self.packets = ""
         self.alerts = None
+        self.flag = ""
 
     def capture_traffic(self) -> None:
         """
@@ -34,7 +35,8 @@ class Capture:
         Sort and return all captured network protocols
         """
         logger.info(f"Sorting network protocols")
-        self.all_protocols = self.all_protocols.most_common()
+        tmp = dict(self.all_protocols)
+        self.all_protocols = dict(sorted(tmp.items(), key=lambda item: item[1], reverse=False))
 
 
 
@@ -69,7 +71,7 @@ class Capture:
 
 
         self.alerts = self._attack_warning(protocols)
-        self.summary = {"summary" : self.all_protocols, "alerts" : self.alerts}
+        self.summary = self.all_protocols
         self._gen_json_report()
 
 
@@ -103,7 +105,13 @@ class Capture:
         :returns: None
 
         """
-        alerts = self.alerts
+
+        report = {
+            "protocol" : self.all_protocols,
+            "attacks"  : self.alerts
+            "flag": self.flag
+
+        }
 
         with open('report.json', 'w') as fichier:
             json.dump(alerts, fichier, indent=4)
@@ -126,7 +134,7 @@ class Capture:
             if not pkt.haslayer(Raw):
                 continue
 
-            elif not pkt.hashlayer(protocols):
+            elif not pkt.haslayer(protocols):
                 continue
 
             charge_utile = unquote_plus(pkt[Raw].load.decode(errors="ignore"))
@@ -140,16 +148,16 @@ class Capture:
                     "details": match.meta.get("description", ""),
                 })
 
-            return alerts
+        return alerts
 
-    def _get_ip(pkt):
+    def _get_ip(self, pkt:str):
             if pkt.haslayer(IP):
                 return pkt[IP].src
             if pkt.haslayer(IPv6):
                 return pkt[IPv6].src
             return None
 
-    def _get_mac(pkt):
+    def _get_mac(self, pkt:str):
             return pkt[Ether].src if pkt.haslayer(Ether) else None
 
     def _is_a_file(self, interface) -> bool:
