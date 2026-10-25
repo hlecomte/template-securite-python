@@ -1,5 +1,7 @@
 import json
 import yara
+from pwnlib.flag import flag
+
 from src.tp1.utils.lib import choose_interface
 from tp1.utils.config import logger
 from urllib.parse import unquote_plus
@@ -70,9 +72,9 @@ class Capture:
         logger.debug(f"Sorted protocols: {sort}")
 
 
-        self.alerts = self._attack_warning(protocols)
-        self.summary = self.all_protocols
-        self._gen_json_report()
+        self._get_flag()
+        self._attack_warning(protocols)
+        self._gen_summary()
 
 
     def get_summary(self) -> str:
@@ -82,42 +84,36 @@ class Capture:
         """
         return self.summary
 
-    def _gen_summary(self, all_protocols) -> None:
+    def _gen_summary(self) -> None:
         """
         Generate summary
 
         :return: str
         """
-        summary = f"{len(self.packets)} paquets capturés sur {self.interface}.\n Protocoles {self.all_protocols}\n"
+        logger.info(f"{len(self.packets)} paquets capturés sur {self.interface}.\n Protocoles {self.all_protocols}\n")
 
         if self.alerts:
-            summary += f"{len(self.alerts)} tentative(s) d'attaque détectée(s) :\n"
+            logger.info(f"{len(self.alerts)} tentative(s) d'attaque détectée(s) :\n")
             for alert in self.alerts:
-                summary += f"- {alert.attack} ({alert.protocol}) depuis {alert.ip} / {alert.mac}\n"
+                logger.info(f"- {alert["type"]} depuis {alert["attacker"]}\n")
         else:
-            summary += "Aucun trafic illégitime détecté, tout va bien.\n"
+            logger.info("Aucun trafic illégitime détecté, tout va bien.\n")
 
-
-    def _gen_json_report(self) -> None:
-        """
-        Generate json alert report
-
-        :returns: None
-
-        """
-
-        report = {
-            "protocol" : self.all_protocols,
-            "attacks"  : self.alerts
+        self.summary = {
+            "protocol": self.all_protocols,
+            "attacks": self.alerts,
             "flag": self.flag
 
         }
 
+
+
         with open('report.json', 'w') as fichier:
-            json.dump(alerts, fichier, indent=4)
+            json.dump(self.summary, fichier, indent=4)
 
 
-    def _attack_warning(self, protocols: str):
+
+    def _attack_warning(self, protocols: str) -> None:
         """
 
         Return attack alerts
@@ -125,7 +121,7 @@ class Capture:
         :returns: list attack
 
         """
-        alerts = []
+        self.alerts = []
         rules_path = str(Path(__file__).resolve().parent.parent / "rules" / "patern.yar")
         rules = yara.compile(filepath=rules_path)
         protocols = protocols.upper()
@@ -140,25 +136,43 @@ class Capture:
             charge_utile = unquote_plus(pkt[Raw].load.decode(errors="ignore"))
 
             for match in rules.match(data=charge_utile):
-                alerts.append({
-                    "attack": match.rule,
-                    "protocol": f"{protocols}" if pkt.haslayer(protocols) else "Autre",
-                    "ip": self._get_ip(pkt),
-                    "mac": self._get_mac(pkt),
-                    "details": match.meta.get("description", ""),
+                self.alerts.append({
+                    "type": match.rule,
+                    "attacker": self._get_attacks_info(pkt)
                 })
 
-        return alerts
 
-    def _get_ip(self, pkt:str):
+    def _get_flag(self) -> None:
+        """
+        Take flag in .pcap
+
+        :return: flag
+
+        """
+        rules = yara.compile(source=r'rule Flag { strings: $f = /ESGI\{[^}\r\n]{1,200}\}/ condition: $f }')
+
+        for pkt in self.packets:
+            if not pkt.haslayer(Raw):
+                continue
+
+            charge_utile = unquote_plus(pkt[Raw].load.decode(errors="ignore"))
+
+            for match in rules.match(data=charge_utile):
+                for i in match.strings:
+                    for c in i.instances:
+                        self.flag = c.matched_data.decode(errors="ignore")
+
+
+
+
+    def _get_attacks_info(self, pkt:str) -> str:
             if pkt.haslayer(IP):
                 return pkt[IP].src
-            if pkt.haslayer(IPv6):
+            elif pkt.haslayer(IPv6):
                 return pkt[IPv6].src
+            elif pkt.haslayer(Ether):
+                return pkt[Ether].src
             return None
-
-    def _get_mac(self, pkt:str):
-            return pkt[Ether].src if pkt.haslayer(Ether) else None
 
     def _is_a_file(self, interface) -> bool:
         """
