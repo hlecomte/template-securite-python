@@ -2,13 +2,15 @@ import json
 import yara
 from pwnlib.flag import flag
 
-from src.tp1.utils.lib import choose_interface
+from src.tp1.utils.lib import choose_interface, choose_report_file
 from tp1.utils.config import logger
 from urllib.parse import unquote_plus
 from scapy.all import sniff, rdpcap, Raw
 from scapy.all import IP, IPv6, Ether
 from collections import Counter
 from pathlib import Path
+
+
 
 class Capture:
     def __init__(self) -> None:
@@ -100,7 +102,7 @@ class Capture:
             logger.info("Aucun trafic illégitime détecté, tout va bien.\n")
 
         self.summary = {
-            "protocol": self.all_protocols,
+            "protocols": self.all_protocols,
             "attacks": self.alerts,
             "flag": self.flag
 
@@ -108,7 +110,7 @@ class Capture:
 
 
 
-        with open('report.json', 'w') as fichier:
+        with open(choose_report_file(), 'w') as fichier:
             json.dump(self.summary, fichier, indent=4)
 
 
