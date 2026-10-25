@@ -1,17 +1,19 @@
-from collections import Counter
+import json
 import yara
-from urllib.parse import unquote_plus
 from src.tp1.utils.lib import choose_interface
 from tp1.utils.config import logger
-from scapy.all import sniff, rdpcap, Raw, IP, IPv6, Ether
+from urllib.parse import unquote_plus
+from scapy.all import sniff, rdpcap, Raw
+from scapy.all import IP, IPv6, Ether
+from collections import Counter
 from pathlib import Path
-
 
 class Capture:
     def __init__(self) -> None:
         self.interface = choose_interface()
+        self.all_protocols = Counter()
         self.summary = ""
-        self.packet = ""
+        self.packets = ""
         self.alerts = None
 
     def capture_traffic(self) -> None:
@@ -21,36 +23,33 @@ class Capture:
         interface = self.interface
         logger.info(f"Capture traffic from interface {interface}")
 
-        if Path(interface).is_file():
+
+        if self._is_a_file(interface):
             self.packets = rdpcap(interface)
         else:
             self.packets = sniff(iface=interface, count=100)
 
-
-    def sort_network_protocols(self) -> str:
+    def sort_network_protocols(self) -> None:
         """
         Sort and return all captured network protocols
         """
         logger.info(f"Sorting network protocols")
-        protocols_sorted = dict(sorted(self.packets.protocols.items(), key=lambda item: item[1], reverse=True))
+        self.all_protocols = self.all_protocols.most_common()
 
-        return protocols_sorted
 
-    def get_all_protocols(self) -> str:
+
+    def get_all_protocols(self) -> None:
         """
         Return all protocols captured with total packets number
         """
-        counter = Counter()
-
         logger.info(f"Capture all protocols")
 
         for pkt in self.packets:
             for name in {layer.__name__ for layer in pkt.layers()}:
-                counter[name] += 1
+                self.all_protocols[name] += 1
 
-        return counter
 
-    def analyse(self, protocols: str) -> None:
+    def analyse(self, protocols: str = "tcp") -> None:
         """
         Analyse all captured data and return statement
         Si un tra c est illégitime (exemple : Injection SQL, ARP
@@ -63,13 +62,15 @@ class Capture:
         Sinon a cher que tout va bien
         """
 
-        all_protocols = self.get_all_protocols()
+        self.get_all_protocols()
         sort = self.sort_network_protocols()
-        logger.debug(f"All protocols: {all_protocols}")
+        logger.debug(f"All protocols: {self.all_protocols.keys()}")
         logger.debug(f"Sorted protocols: {sort}")
 
-        self.summary = self._gen_summary()
+
         self.alerts = self._attack_warning(protocols)
+        self.summary = {"summary" : self.all_protocols, "alerts" : self.alerts}
+        self._gen_json_report()
 
 
     def get_summary(self) -> str:
@@ -79,9 +80,11 @@ class Capture:
         """
         return self.summary
 
-    def _gen_summary(self) -> str:
+    def _gen_summary(self, all_protocols) -> None:
         """
         Generate summary
+
+        :return: str
         """
         summary = f"{len(self.packets)} paquets capturés sur {self.interface}.\n Protocoles {self.all_protocols}\n"
 
@@ -92,7 +95,19 @@ class Capture:
         else:
             summary += "Aucun trafic illégitime détecté, tout va bien.\n"
 
-        return summary
+
+    def _gen_json_report(self) -> None:
+        """
+        Generate json alert report
+
+        :returns: None
+
+        """
+        alerts = self.alerts
+
+        with open('report.json', 'w') as fichier:
+            json.dump(alerts, fichier, indent=4)
+
 
     def _attack_warning(self, protocols: str):
         """
@@ -103,22 +118,27 @@ class Capture:
 
         """
         alerts = []
-        rules = yara.compile("../rules/patern.yar")
+        rules_path = str(Path(__file__).resolve().parent.parent / "rules" / "patern.yar")
+        rules = yara.compile(filepath=rules_path)
+        protocols = protocols.upper()
 
         for pkt in self.packets:
             if not pkt.haslayer(Raw):
-                pass
+                continue
 
-            clean_pkt = unquote_plus(pkt[Raw].load.decode(errors="ignore"))
+            elif not pkt.hashlayer(protocols):
+                continue
 
-        for match in rules.match(data=clean_pkt):
-            alerts.append({
-                "attack": match.rule,
-                "protocol": f"{protocols}" if pkt.haslayer(protocols.upper()) else "Autre",
-                "ip": self._get_ip(pkt),
-                "mac": self._get_mac(pkt),
-                "details": match.meta.get("description", ""),
-            })
+            charge_utile = unquote_plus(pkt[Raw].load.decode(errors="ignore"))
+
+            for match in rules.match(data=charge_utile):
+                alerts.append({
+                    "attack": match.rule,
+                    "protocol": f"{protocols}" if pkt.haslayer(protocols) else "Autre",
+                    "ip": self._get_ip(pkt),
+                    "mac": self._get_mac(pkt),
+                    "details": match.meta.get("description", ""),
+                })
 
             return alerts
 
@@ -131,3 +151,17 @@ class Capture:
 
     def _get_mac(pkt):
             return pkt[Ether].src if pkt.haslayer(Ether) else None
+
+    def _is_a_file(self, interface) -> bool:
+        """
+        Check if the interface is a file
+
+        :returns: bool
+
+        """
+
+        if not Path.is_file(interface):
+            return False
+        else:
+            return True
+

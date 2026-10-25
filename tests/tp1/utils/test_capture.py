@@ -1,13 +1,13 @@
 from unittest.mock import patch
 from src.tp1.utils.capture import Capture
-
+from collections import Counter
 
 def test_capture_init():
     # When
     capture = Capture()
 
     # Then
-    assert capture.interface == "wlp6s0"
+    assert capture.interface == '/home/hlecomte/PycharmProjects/template-securite-python/src/tp1/utils/Capture.pcap'
     assert capture.summary == ""
 
 
@@ -20,29 +20,31 @@ def test_given_capture_when_capture_traffic_then_interface_is_set():
 
     # Then
     # This is a minimal test since the method doesn't do much yet
-    assert capture.interface == "wlp6s0"
-
-
-def test_sort_network_protocols():
-    # Given
-    capture = Capture()
-
-    # When
-    result = capture.sort_network_protocols()
-
-    # Then
-    assert result == ""  # Method currently returns None
-
+    assert capture.interface == "./Capture.pcap"
 
 def test_get_all_protocols():
     # Given
     capture = Capture()
+    capture.capture_traffic()
 
     # When
     result = capture.get_all_protocols()
 
     # Then
-    assert result == ""  # Method currently returns None
+    assert result == None  # Method currently returns None
+
+def test_sort_network_protocols():
+    # Given
+    capture = Capture()
+    capture.capture_traffic()
+    capture.get_all_protocols()
+
+    # When
+    result = capture.sort_network_protocols()
+
+    # Then
+    assert result == None # Method currently returns None
+
 
 
 def test_analyse():
@@ -64,6 +66,13 @@ def test_analyse():
     mock_gen_summary.assert_called_once()
     assert capture.summary == "Test summary"
 
+def test_annalyse():
+    # Given
+    capture = Capture()
+    capture.capture_traffic()
+
+    # When
+    capture.analyse("tcp")
 
 def test_get_summary():
     # Given
@@ -86,3 +95,5 @@ def test_gen_summary():
 
     # Then
     assert result == ""  # Method currently returns empty string
+
+

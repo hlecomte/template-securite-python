@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 from os import WCONTINUED
 
 from elftools.elf import descriptions
@@ -54,10 +55,11 @@ def choose_interface(args_test=None) -> str:
             return args_test.iface
         if args_test.pcap is not None:
             return args_test.pcap
+
     try:
         args = parse_arguments()
     except:
-        interface = find_default_interface()
+        interface = str(Path(__file__).resolve().parent.parent  / "Capture.pcap")
         return interface
 
     if args.iface is not None:
