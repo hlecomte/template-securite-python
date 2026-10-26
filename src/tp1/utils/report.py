@@ -14,39 +14,29 @@ class Report:
         self.array = ""
         self.graph = ""
 
-    def concat_report(self) -> str:
+    def concat_report(self) -> FPDF:
         """
         Concatenate report content
-        :return:
+        :return: pdf document
         """
         pdf = FPDF()
-        pdf.set_auto_page_break(auto=True, margin=15)
         pdf.add_page()
 
         pdf.set_font("Helvetica", "B", 20)
-        pdf.cell(0, 12, self.title, align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        pdf.ln(5)
+        pdf.cell(0, 10, self.title)
+        pdf.ln(20)
 
-        if self.array:
-            pdf.set_font("Helvetica", "B", 14)
-            pdf.cell(0, 10, "Tableau des protocoles", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-            pdf.set_font("Helvetica", "", 11)
-            with pdf.table(col_widths=(50, 25, 25), text_align=("LEFT", "RIGHT", "RIGHT")) as table:
-                header = table.row()
-                for title in ("Protocole", "Paquets", "Pourcentage"):
-                    header.cell(title)
-                for protocol, count, percent in self.array:
-                    row = table.row()
-                    row.cell(protocol)
-                    row.cell(str(count))
-                    row.cell(f"{percent:.1f} %")
-            pdf.ln(5)
+        pdf.set_font("Helvetica", "", 11)
+        for protocol, count, percent in self.array:
+            pdf.cell(60, 8, protocol, border=1)
+            pdf.cell(40, 8, str(count), border=1)
+            pdf.cell(40, 8, str(round(percent, 1)) + " %", border=1)
+            pdf.ln()
 
-        if self.graph is not None:
-            pdf.set_font("Helvetica", "B", 14)
-            pdf.cell(0, 10, "Graphique", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        if self.graph:
+            pdf.ln(10)
             self.graph.seek(0)
-            pdf.image(self.graph, w=pdf.epw)
+            pdf.image(self.graph, w=180)
 
         return pdf
 
