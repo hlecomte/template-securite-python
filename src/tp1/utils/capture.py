@@ -1,5 +1,10 @@
 import json
+from statistics import register
+from time import CLOCK_PROCESS_CPUTIME_ID
+
 import yara
+from paramiko import packet
+
 from src.tp1.utils.lib import choose_interface, choose_report_file
 from tp1.utils.config import logger
 from urllib.parse import unquote_plus
@@ -18,16 +23,6 @@ class Capture:
         self.alerts = []
         self.flag = ""
         self.patern = r"""
-
-private rule HTTP_Request
-{
-    strings:
-        // Pas de \S+ pour l'URL : après unquote_plus elle peut contenir des espaces
-        $methode = /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS) [^\r\n]+ HTTP\/[0-9.]+\r?\n/
-
-    condition:
-        $methode at 0
-}
 
 
 rule SQL_Injection
@@ -62,151 +57,18 @@ rule SQL_Injection
         )
 }
 
-
-rule XSS
+rule ARP_Reply 
 {
-    meta:
-        description = "Cross-Site Scripting : balise ou gestionnaire d'événement JavaScript injecté dans une requête"
-        category    = "XSS"
-        severity    = "high"
 
-    strings:
-        $script   = /<\s*script[\s>\/]/ nocase
-        $handler  = /<\s*(img|svg|body|iframe|input|video|details|a)\b[^>]*\son[a-z]+\s*=/ nocase
-        $js_uri   = /(href|src|action)\s*=\s*["']?\s*javascript:/ nocase
-        $js_param = /=\s*javascript:/ nocase
-        $cookie   = /document\.(cookie|location|domain)/ nocase
-        $iframe   = /<\s*iframe[^>]+src\s*=/ nocase
-
+    condition: uint16be(12) == 0x0806 and uint16be(20) == 2 
+ 
+ }
+ 
+rule Port_Scan {
     condition:
-        HTTP_Request and any of them
+        uint16be(12) == 0x0800 and uint8(23) == 6 and
+        for any f in (0x02, 0x00, 0x01, 0x29) : ( uint8(14 + (uint8(14) & 0x0F) * 4 + 13) == f )
 }
-
-
-rule Path_Traversal
-{
-    meta:
-        description = "Path traversal / LFI : remontée d'arborescence ou accès à un fichier système sensible"
-        category    = "Path Traversal"
-        severity    = "high"
-
-    strings:
-        $dotdot     = /(\.\.[\/\\]){2,}/
-        $dotdot_enc = /(%2e%2e|\.\.)(%2f|%5c)/ nocase          // double encodage restant
-        $passwd     = /\/etc\/(passwd|shadow|hosts|group)\b/
-        $win        = /(boot\.ini|win\.ini|system32[\/\\])/ nocase
-        $wrapper    = /(php|file|expect|zip|phar):\/\// nocase
-
-    condition:
-        HTTP_Request and any of them
-}
-
-
-
-rule Command_Injection
-{
-    meta:
-        description = "Injection de commande : séparateur shell suivi d'une commande système"
-        category    = "Command Injection"
-        severity    = "critical"
-
-    strings:
-        // ;cat  |id  &&whoami  $(uname)  `wget ...`
-        $chain  = /(;|\||&&|\$\(|`)\s*(cat|id|whoami|uname|ls|pwd|wget|curl|nc|ncat|bash|sh|ping|nslookup|rm|chmod|python3?|perl)(\s|$|;|\||\)|`)/
-        $shell  = /\/bin\/(ba|z|da)?sh\b/
-        $win    = /(cmd(\.exe)?\s*\/c|powershell(\.exe)?\s+-)/ nocase
-        $revsh  = /\/dev\/tcp\/\d{1,3}(\.\d{1,3}){3}\/\d+/
-
-    condition:
-        HTTP_Request and any of them
-}
-
-
-rule Log4Shell
-{
-    meta:
-        description = "Exploitation Log4Shell : expression JNDI dans les données (CVE-2021-44228)"
-        category    = "RCE"
-        severity    = "critical"
-
-    strings:
-        $jndi    = /\$\{\s*jndi\s*:\s*(ldap|ldaps|rmi|dns|iiop|http|nis|corba)/ nocase
-        $obfusc  = /\$\{[^}]{0,30}\$\{(lower|upper|env|sys|::-)/ nocase
-
-    condition:
-        any of them
-}
-
-
-rule Webshell_Upload
-{
-    meta:
-        description = "Code PHP exécutable envoyé dans une requête (upload de web shell)"
-        category    = "Web Shell"
-        severity    = "critical"
-
-    strings:
-        $php_tag = /<\?(php|=)/ nocase
-        $exec    = /(system|exec|shell_exec|passthru|popen|proc_open|assert|eval)\s*\(/ nocase
-        $b64     = /base64_decode\s*\(/ nocase
-        $input   = /\$_(GET|POST|REQUEST|COOKIE)\s*\[/
-
-    condition:
-        HTTP_Request and $php_tag and ($exec or $b64 or $input)
-}
-
-
-rule SSRF_Metadata
-{
-    meta:
-        description = "SSRF : requête qui cible un service interne de métadonnées cloud"
-        category    = "SSRF"
-        severity    = "high"
-
-    strings:
-        $aws    = "169.254.169.254"
-        $gcp    = "metadata.google.internal" nocase
-        $azure  = "169.254.169.254/metadata" nocase
-        $local  = /=\s*(https?|gopher|dict):\/\/(127\.0\.0\.1|localhost|0\.0\.0\.0)/ nocase
-
-    condition:
-        HTTP_Request and any of them
-}
-
-
-rule Scanner_User_Agent
-{
-    meta:
-        description = "Requête émise par un outil de scan ou d'attaque (User-Agent identifié)"
-        category    = "Reconnaissance"
-        severity    = "medium"
-
-    strings:
-        $ua = /\r\nUser-Agent:[^\r\n]*(sqlmap|nikto|nmap|masscan|zgrab|dirbuster|gobuster|ffuf|wfuzz|wpscan|acunetix|nessus|openvas|hydra|nuclei|w3af|burp)/ nocase
-
-    condition:
-        HTTP_Request and $ua
-}
-
-
-
-rule Cleartext_Credentials
-{
-    meta:
-        description = "Identifiants transmis en clair (FTP, POP3, IMAP ou HTTP Basic)"
-        category    = "Credentials"
-        severity    = "low"
-
-    strings:
-        $ftp_pop = /^(PASS|USER) \S+\r?\n/                   // FTP et POP3
-        $imap    = /^\S+ LOGIN \S+ \S+\r?\n/ nocase           // IMAP
-        $basic   = /\r\nAuthorization:\s*Basic\s+[A-Za-z0-9+\/=]{4,}/ nocase
-
-    condition:
-        $ftp_pop at 0 or $imap at 0 or $basic
-}
-
-
 
 """
 
@@ -313,7 +175,71 @@ rule Cleartext_Credentials
         :returns: list attack
 
         """
-        #rules_path = str(Path(__file__).resolve().parent.parent / "rules" / "patern.yar")
+
+        self._detect_scan_port(protocols)
+        self._detect_arp_spoofing()
+        self._detect_SQL_injection(protocols)
+
+
+    def _detect_scan_port(self, protocols):
+        """
+        Detect scan port
+
+        :return:
+
+        """
+        protocols = protocols.upper()
+        registre_connexions = set()
+
+        for pkt in self.packets:
+            if not pkt.haslayer(IP):
+                ip_src= packet[IP].src
+                if packet.haslayer(protocols):
+                    registre_connexions.add((ip_src, packet[protocols].dport))
+
+        occurance = [ip_src for ip_src, port in registre_connexions]
+        count_occurance = Counter(occurance)
+
+        for ip_src, occurance_port in count_occurance.items():
+            if occurance >= 15:
+                self.alerts.append({
+                    "type" : "port_scan",
+                    "attacker" : ip_src,
+                })
+
+
+
+    def _detect_arp_spoofing(self):
+        """
+        Detect arp spoofing
+        Returns:
+
+        """
+        rules = yara.compile(source=self.patern)
+        arp_table = {}
+        for pkt in self.packets:
+            if pkt.haslayer(ARP) and rules.match(data=raw):
+                ip_src = packet[ARP].psrc
+                mac_src = packet[ARP].hwsrc
+
+            if ip_src in arp_table:
+                if arp_table[ip_src] != mac_src:
+                    self.alerts.append({
+                        "type": "port_scan",
+                        "attacker": ip_src,
+                    })
+
+
+    def _detect_SQL_injection(self, protocols: str):
+
+        """
+
+        Detecte SQL Injection
+
+        :return:
+
+        """
+
         rules = yara.compile(source=self.patern)
         protocols = protocols.upper()
 
@@ -331,7 +257,6 @@ rule Cleartext_Credentials
                     "type": match.rule,
                     "attacker": self._get_attacks_info(pkt)
                 })
-
 
     def _get_flag(self) -> None:
         """
