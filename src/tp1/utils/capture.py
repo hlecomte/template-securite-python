@@ -15,9 +15,9 @@ class Capture:
         self.all_protocols = Counter()
         self.summary = ""
         self.packets = ""
-        self.alerts = None
+        self.alerts = []
         self.flag = ""
-        self.patern = patern = """
+        self.patern = r"""
 
 private rule HTTP_Request
 {
@@ -304,7 +304,8 @@ rule Cleartext_Credentials
 
 
 
-    def _attack_warning(self, protocols: str) -> None:
+
+    def _attack_warning(self, protocols: str):
         """
 
         Return attack alerts
@@ -312,36 +313,24 @@ rule Cleartext_Credentials
         :returns: list attack
 
         """
+        #rules_path = str(Path(__file__).resolve().parent.parent / "rules" / "patern.yar")
+        rules = yara.compile(source=self.patern)
+        protocols = protocols.upper()
 
-        def _attack_warning(self, protocols: str):
-            """
+        for pkt in self.packets:
+            if not pkt.haslayer(Raw):
+                continue
 
-            Return attack alerts
+            elif not pkt.haslayer(protocols):
+                continue
 
-            :returns: list attack
+            charge_utile = unquote_plus(pkt[Raw].load.decode(errors="ignore"))
 
-            """
-            alerts = []
-            #rules_path = str(Path(__file__).resolve().parent.parent / "rules" / "patern.yar")
-            rules = yara.compile(source=self.patern)
-            protocols = protocols.upper()
-
-            for pkt in self.packets:
-                if not pkt.haslayer(Raw):
-                    continue
-
-                elif not pkt.haslayer(protocols):
-                    continue
-
-                charge_utile = unquote_plus(pkt[Raw].load.decode(errors="ignore"))
-
-                for match in rules.match(data=charge_utile):
-                    self.alerts.append({
-                        "type": match.rule,
-                        "attacker": self._get_attacks_info(pkt)
-                    })
-
-            return alerts
+            for match in rules.match(data=charge_utile):
+                self.alerts.append({
+                    "type": match.rule,
+                    "attacker": self._get_attacks_info(pkt)
+                })
 
 
     def _get_flag(self) -> None:
