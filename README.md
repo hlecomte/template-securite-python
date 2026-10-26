@@ -3,10 +3,11 @@
 ## Description
 
 Projet contenant les modèles de TP pour le cours de sécurité Python de 4e année de l'ESGI.
+Auteur : LECOMTE Hugo / Yona Cadin
 
 ## Installation
 
-Faire un fork puis un clone du projet :
+Cloner le repository du projet :
 
 ```bash
 git clone git@github.com:<VotreNom>/template-securite-python.git
