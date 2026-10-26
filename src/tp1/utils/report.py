@@ -1,7 +1,4 @@
-from asyncio import protocols
 from tp1.utils.capture import Capture
-from tp1.utils import capture
-#from tp1.utils.capture import Capture
 import io
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos

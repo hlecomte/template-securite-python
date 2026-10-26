@@ -1,16 +1,11 @@
 import json
-from statistics import register
-from time import CLOCK_PROCESS_CPUTIME_ID
-
 import yara
-from paramiko import packet
-
 from src.tp1.utils.lib import choose_interface, choose_report_file
 from tp1.utils.config import logger
 from urllib.parse import unquote_plus
 from scapy.all import sniff, rdpcap, Raw
 from scapy.all import IP, IPv6, Ether, ARP, TCP
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 
 
@@ -24,16 +19,21 @@ class Capture:
         self.flag = ""
         self.patern = r"""
 
-
-rule SQL_Injection
+private rule HTTP_Request
 {
-    meta:
-        description = "Injection SQL : UNION SELECT, tautologie, requête empilée ou injection temporelle"
-        category    = "SQL Injection"
-        severity    = "high"
+    strings:
+        $methode = /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS) [^\r\n]+ HTTP\/[0-9.]+\r?\n/
+
+    condition:
+        $methode at 0
+}
+
+
+rule sql_injection
+{
 
     strings:
-        // Motifs forts : un seul suffit
+
         $union    = /union(\s|\/\*[^*]*\*\/)+(all(\s|\/\*[^*]*\*\/)+)?select\s/ nocase
         $stacked  = /;\s*(drop|truncate|alter)\s+table\s/ nocase
         $sleep    = /(sleep|pg_sleep)\s*\(\s*\d+\s*\)/ nocase
@@ -43,7 +43,7 @@ rule SQL_Injection
         $tauto_n  = /\s(or|and)\s+\d+\s*=\s*\d+(\s|$|--|#|;)/ nocase
         $bypass   = /'\s*(--|#)(\s|&|$)/                       // admin'--  (fin de la valeur)
 
-        // Motifs faibles : il en faut deux
+
         $schema   = "information_schema" nocase
         $comment  = /'\s*(--|#|\/\*)/
         $concat   = /(concat|group_concat|char)\s*\(/ nocase
@@ -63,12 +63,6 @@ rule ARP_Reply
     condition: uint16be(12) == 0x0806 and uint16be(20) == 2 
  
  }
- 
-rule Port_Scan {
-    condition:
-        uint16be(12) == 0x0800 and uint8(23) == 6 and
-        for any f in (0x02, 0x00, 0x01, 0x29) : ( uint8(14 + (uint8(14) & 0x0F) * 4 + 13) == f )
-}
 
 """
 
@@ -180,55 +174,50 @@ rule Port_Scan {
         self._detect_arp_spoofing()
         self._detect_SQL_injection(protocols)
 
-
-    def _detect_scan_port(self, protocols):
+    def _detect_scan_port(self, protocols: str = "tcp", seuil: int = 15):
         """
-        Detect scan port
-
-        :return:
-
+        Detect scan port : une IP qui envoie des SYN (ou NULL/FIN/Xmas)
+        vers au moins `seuil` ports différents.
         """
         protocols = protocols.upper()
         registre_connexions = set()
 
         for pkt in self.packets:
-            if not pkt.haslayer(IP):
-                ip_src= packet[IP].src
-                if packet.haslayer(protocols):
-                    registre_connexions.add((ip_src, packet[protocols].dport))
+            if not pkt.haslayer(IP) or not pkt.haslayer(protocols):
+                continue
 
-        occurance = [ip_src for ip_src, port in registre_connexions]
-        count_occurance = Counter(occurance)
+            if protocols == "TCP" and int(pkt[TCP].flags) not in (0x02, 0x00, 0x01, 0x29):
+                continue
+            mac_src = pkt[Ether].src if pkt.haslayer(Ether) else None
+            registre_connexions.add((pkt[IP].src, mac_src, pkt[protocols].dport))
 
-        for ip_src, occurance_port in count_occurance.items():
-            if occurance >= 15:
+        nb_ports = Counter((ip_src, mac_src) for ip_src, mac_src, _ in registre_connexions)
+
+        for (ip_src, mac_src), occurence_port in nb_ports.items():
+            if occurence_port >= seuil:
                 self.alerts.append({
-                    "type" : "port_scan",
-                    "attacker" : ip_src,
+                    "type": "port_scan",
+                    "attacker": ip_src
                 })
-
-
 
     def _detect_arp_spoofing(self):
         """
-        Detect arp spoofing
-        Returns:
-
+        Detect arp spoofing : une même IP annoncée par plusieurs MAC.
         """
-        rules = yara.compile(source=self.patern)
-        arp_table = {}
+        arp_table = defaultdict(Counter)
+
         for pkt in self.packets:
-            if pkt.haslayer(ARP) and rules.match(data=raw):
-                ip_src = packet[ARP].psrc
-                mac_src = packet[ARP].hwsrc
+            if not pkt.haslayer(ARP) or pkt[ARP].op != 2:
+                continue
+            arp_table[pkt[ARP].psrc][pkt[ARP].hwsrc] += 1
 
-            if ip_src in arp_table:
-                if arp_table[ip_src] != mac_src:
-                    self.alerts.append({
-                        "type": "port_scan",
-                        "attacker": ip_src,
-                    })
-
+        for ip_usurpee, macs in arp_table.items():
+            if len(macs) > 1:
+                mac_attaquant, _ = macs.most_common(1)[0]
+                self.alerts.append({
+                    "type": "arp_spoofing",
+                    "attacker": mac_attaquant,
+                })
 
     def _detect_SQL_injection(self, protocols: str):
 
