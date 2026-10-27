@@ -8,3 +8,22 @@ class MyTestCase(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+def test_init_Triage():
+
+    # Given
+    path = "/home/hlecomte/PycharmProjects/template-securite-python/src/tp2/suspectfile"
+    rules = "/home/hlecomte/PycharmProjects/template-securite-python/src/tp2/rules"
+    out = "/home/hlecomte/PycharmProjects/template-securite-python/src/tp2/report"
+    llm = "opensearch"
+
+
+    # When
+    triage = Triage(path, rules, out, llm)
+
+    # Then
+    assert triage.path == path
+    assert triage.rules_path == rules
+    assert triage.out_path == out
+    assert triage.backend == llm
+
