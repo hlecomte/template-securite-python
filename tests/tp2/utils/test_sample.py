@@ -35,6 +35,15 @@ def test_extract_iocs():
 
     assert iocs == {'iocs': {'domains': ['c2-62d30101.example.test', 'gnu.org', 'translationproject.org', 'www.gnu.org'], 'ips': ['185.214.153.19'], 'urls': ['http://c2-62d30101.example.test/gate.php', 'https://gnu.org/licenses/gpl.html', 'https://translationproject.org/team/', 'https://www.gnu.org/gethelp/', 'https://www.gnu.org/software/coreutils/'], 'mutex': ['Global\\m3fd57966'], 'registry': ['HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\svcda6483']}}
 
+def test_extract_iocs():
+    #Given
+    sample = Sample("/home/hlecomte/PycharmProjects/template-securite-python/src/tp2/suspectfile/sample1_dropper.bin")
+
+    #When
+    iocs = sample.extract_iocs()
+
+    assert iocs == {'iocs': {'domains': ['c2-62d30101.example.test', 'gnu.org', 'translationproject.org', 'www.gnu.org'], 'ips': ['185.214.153.19'], 'urls': ['http://c2-62d30101.example.test/gate.php', 'https://gnu.org/licenses/gpl.html', 'https://translationproject.org/team/', 'https://www.gnu.org/gethelp/', 'https://www.gnu.org/software/coreutils/'], 'mutex': ['Global\\m3fd57966'], 'registry': ['HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\svcda6483']}}
+
 def test_extract_flag():
     # Given
     sample = Sample("/home/hlecomte/PycharmProjects/template-securite-python/src/tp2/suspectfile/sample1_dropper.bin")

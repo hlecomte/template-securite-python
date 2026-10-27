@@ -32,48 +32,36 @@ class Sample:
         return -sum((c / n) * math.log2(c / n) for c in freq.values())
 
     def extract_iocs(self) -> dict:
-        """domaines, ips, urls, mutex, registry (regex sur les strings)."""
+        """
+        Extract iocs from self.data
 
-        patterns = {
-            "domains": r"\b(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}\b",
-            "ips": r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
-            "urls": r"https?://[^\s\"'<>]+",
-            "mutex": r"\b(?:Global|Local)\\\S+",
-            "registry": r"\b(?:HKEY_\w+|HKLM|HKCU)\\[^\"'\r\n]+",
-        }
-        extensions = {"com", "net", "org", "info", "biz", "io", "co", "xyz", "top", "online","site", "club", "app", "dev", "cloud", "live", "pw", "cc", "su","fr", "de", "uk", "us", "ru", "cn", "jp", "br", "in", "it", "es","nl", "be", "ch", "ca", "au", "pl", "ua", "kr", "tk", "ir","test"}
+        :returns: dict
 
-        strings = self._extract_strings()
+        """
+        TEXT = re.findall(rb"[\x20-\x7e]{4,}", self.data)
 
-        iocs = {"iocs":{}}
-        for nom, regex in patterns.items():
-            resultats = set()
-            for s in strings:
-                resultats.update(re.findall(regex, s))
-            iocs["iocs"][nom] = sorted(resultats)
+        DOMAIN = re.compile(r"\b(?:[a-z0-9-]+\.)+[a-z]{2,}\b", re.I)
+        IPV4 = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
+        URL = re.compile(r"https?://[^\s\"']+")
+        MUTEXT = re.compile(r"\b(?:Global|Local)\\\S+")
+        REGISTRY = re.compile(r"\b(?:HKEY_\w+|HKLM|HKCU)\\[^\"'\r\n]+")
 
-        iocs["iocs"]["domains"] = [
-            d for d in iocs["iocs"]["domains"]
-            if d.split(".")[-1].lower() in extensions
-        ]
+        iocs = {"iocs": { "domains": [], "ips": [], "urls": [], "mutex": [], "registry": []}}
+
+        for text in TEXT:
+            if re.findall(DOMAIN, text):
+                iocs["iocs"]["domains"].append(text)
+            if re.findall(IPV4, text):
+                iocs["iocs"]["ips"].append(text)
+            if re.findall(URL, text):
+                iocs["iocs"]["urls"].append(text)
+            if re.findall(MUTEXT, text):
+                iocs["iocs"]["mutex"].append(text)
+            if re.findall(REGISTRY, text):
+                iocs["iocs"]["registry"].append(text)
+
+
         return iocs
-
-    def extract_flag(self):
-        flag_pattern = r"FLAG=ESGI\{[a-zA-Z0-9]+_[0-9a-f]+\}"
-        strings = self._extract_strings()
-
-        for s in strings:
-            flag = re.findall(flag_pattern, s)
-
-        return flag
-
-    def _extract_strings(self, min_len=4) -> list:
-        """
-            Extract strings.
-            :return: str
-        """
-        chaines = re.findall(rb"[ -~]{%d,}" % min_len, self.data)
-        return [c.decode() for c in chaines]
 
     def parse_binary(self) -> dict:
         """
