@@ -14,6 +14,12 @@ class Triage:
         self.llm = LLMTriage(backend)
 
     def run(self) -> dict:
+        """
+        Sort the infected files from a folder
+
+        :return: dict
+
+        """
         suspect_file = [f for f in listdir(self.path)]
         for file in suspect_file:
             sample = Sample(f"{self.path}/{file}")
