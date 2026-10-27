@@ -5,6 +5,9 @@ import re
 from collections import Counter
 import lief
 
+from tp2.utils.config import logger
+
+
 class Sample:
     def __init__(self, path: str) -> None:
         self.path = path
@@ -15,6 +18,7 @@ class Sample:
             sha256, md5, taille, type de fichier, entropie de Shannon.
             :return: dict
         """
+
         metadata = {}
         metadata["sha256"] = hashlib.sha256(self.data).hexdigest()
         metadata["md5"] = hashlib.md5(self.data).hexdigest()
@@ -22,7 +26,9 @@ class Sample:
         metadata["file_type"] = magic.from_buffer(self.data)
         metadata["entropy"] = self.shannon_entropy()
 
+        logger.info("Done.")
         return metadata
+
 
     def shannon_entropy(self) -> float:
         if not self.data:
@@ -38,30 +44,67 @@ class Sample:
         :returns: dict
 
         """
-        TEXT = re.findall(rb"[\x20-\x7e]{4,}", self.data)
 
-        DOMAIN = re.compile(r"\b(?:[a-z0-9-]+\.)+[a-z]{2,}\b", re.I)
+        TEXT = [s.decode("ascii") for s in re.findall(rb"[\x20-\x7e]{4,}", self.data)]
+        EXTENTION = {
+            "com", "net", "org", "info", "biz", "io", "co", "xyz", "top", "online",
+            "site", "club", "app", "dev", "cloud", "live", "pw", "cc", "su",
+            "fr", "de", "uk", "us", "ru", "cn", "jp", "br", "in", "it", "es",
+            "nl", "be", "ch", "ca", "au", "pl", "ua", "kr", "tk", "ir", "test"
+        }
+        EXTENTION_RE = "|".join(sorted(EXTENTION, key=len, reverse=True))
+
+        DOMAIN = re.compile(rf"\b(?:[a-z0-9-]+\.)+(?:{EXTENTION_RE})\b", re.I)
         IPV4 = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
-        URL = re.compile(r"https?://[^\s\"']+")
+        URL = re.compile(r"https?://[^\s\"'<>]+")
         MUTEXT = re.compile(r"\b(?:Global|Local)\\\S+")
         REGISTRY = re.compile(r"\b(?:HKEY_\w+|HKLM|HKCU)\\[^\"'\r\n]+")
+
+
+
 
         iocs = {"iocs": { "domains": [], "ips": [], "urls": [], "mutex": [], "registry": []}}
 
         for text in TEXT:
             if re.findall(DOMAIN, text):
-                iocs["iocs"]["domains"].append(text)
+                iocs["iocs"]["domains"].append(re.findall(DOMAIN, text))
             if re.findall(IPV4, text):
-                iocs["iocs"]["ips"].append(text)
+                iocs["iocs"]["ips"].append(re.findall(IPV4, text))
             if re.findall(URL, text):
-                iocs["iocs"]["urls"].append(text)
+                iocs["iocs"]["urls"].append(re.findall(URL, text))
             if re.findall(MUTEXT, text):
-                iocs["iocs"]["mutex"].append(text)
+                iocs["iocs"]["mutex"].append(re.findall(MUTEXT, text))
             if re.findall(REGISTRY, text):
-                iocs["iocs"]["registry"].append(text)
+                iocs["iocs"]["registry"].append(re.findall(REGISTRY, text))
 
+        unique_domains = []
+        for domain in iocs["iocs"]["domains"]:
+            if domain not in unique_domains:
+                unique_domains.append(domain)
+
+        iocs["iocs"]["domains"] = unique_domains
 
         return iocs
+
+
+    def extract_flag(self) -> dict:
+        """
+        Extract flag from self.data
+
+        :return: flag
+        """
+        TEXT = [s.decode("ascii") for s in re.findall(rb"[\x20-\x7e]{4,}", self.data)]
+        FLAG = re.compile(r"ESGI\{[a-zA-Z0-9]+_[0-9a-f]+\}")
+
+        flag = {"flag" : ""}
+
+        for text in TEXT:
+            if re.findall(FLAG, text):
+                flag["flag"] = re.findall(FLAG, text)[0]
+
+        return flag
+
+
 
     def parse_binary(self) -> dict:
         """
