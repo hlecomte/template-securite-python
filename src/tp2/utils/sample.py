@@ -3,6 +3,7 @@ import math
 import magic
 import re
 from collections import Counter
+import lief
 
 class Sample:
     def __init__(self, path: str) -> None:
@@ -66,5 +67,13 @@ class Sample:
         return [c.decode() for c in chaines]
 
     def parse_binary(self) -> dict:
-        """imports / sections via lief (si PE/ELF)."""
+        """
+            imports / sections via lief (si PE/ELF).
+            :retunr: dict
+        """
+        binary = lief.parse(self.data)
 
+        if binary is None:
+            return {"imports": []}
+
+        return {"imports" : [list(dict.fromkeys(f.name for f in binary.imported_functions)), [s.name for s in binary.sections]]}
