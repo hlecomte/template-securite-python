@@ -23,8 +23,10 @@ def main() -> None:
 
     # A modifier pour boucle d'enregistrement dans un dossier des rapports
     report = Report(result)
-    report.generate_pdf(f"{args.sample}.triage.pdf")
-    report.generate_json(f"{args.sample}.triage.json")
+    report.generate_pdf()
+    report.generate_json()
+    #report.generate_pdf(f"{args.sample}.triage.pdf") Le nom du fichier sera gérer par la fonction
+    #report.generate_json(f"{args.sample}.triage.json") Le nom du fichier sera gérer par la fonction
 
 
 if __name__ == "__main__":
