@@ -69,8 +69,11 @@ class Sample:
             :retunr: dict
         """
         binary = lief.parse(self.data)
+        imports = {"imports" : []}
+        for imp in binary.imported_functions:
+            imports["imports"].append(imp.name)
 
-        if binary is None:
-            return {"imports": []}
+        for sec in binary.sections:
+            imports["imports"].append(f"{sec.name} {round(sec.entropy, 2)}")
 
-        return {"imports" : [list(dict.fromkeys(f.name for f in binary.imported_functions)), [s.name for s in binary.sections]]}
+        return imports
