@@ -58,6 +58,15 @@ class Sample:
         ]
         return iocs
 
+    def extract_flag(self):
+        flag_pattern = r"FLAG=ESGI\{[a-zA-Z0-9]+_[0-9a-f]+\}"
+        strings = self._extract_strings()
+
+        for s in strings:
+            flag = re.findall(flag_pattern, s)
+
+        return flag
+
     def _extract_strings(self, min_len=4) -> list:
         """
             Extract strings.

@@ -124,7 +124,7 @@ rule ARP_Reply
         self._gen_summary()
 
 
-    def get_summary(self) -> str:
+    def get_summary(self) -> str:s
         """
         Return summary
         :return:
