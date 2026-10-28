@@ -16,7 +16,7 @@ class YaraScanner:
         for file in rules_file:
             rules = yara.compile(f"{self.rules_path}/{file}")
             if rules.match(data=data):
-                matches.append(rules.matches)
+                matches.append(rules.match(data=data))
             else:
                 continue
 

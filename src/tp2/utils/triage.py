@@ -66,12 +66,12 @@ class Triage:
             presentation.update(bininfo)
             presentation.update(iocs)
             presentation.update(flag)
-            presentation["yara_matches"] = flag
+            presentation["yara_matches"] = matches
 
             summary = json.dumps(presentation)
             verdict = self.llm.triage(summary)
             result = json.dumps(presentation.update(verdict))
-            report.update({presentation["metadata"]["sha256"] : result})
+            report.update({presentation["sha256"] : result})
 
         return report
 

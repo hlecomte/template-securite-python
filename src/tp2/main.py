@@ -22,7 +22,7 @@ def main() -> None:
     result = triage.run()
 
     # A modifier pour boucle d'enregistrement dans un dossier des rapports
-    report = Report(result)
+    report = Report(result, args.out)
     report.generate_pdf()
     report.generate_json()
     #report.generate_pdf(f"{args.sample}.triage.pdf") Le nom du fichier sera gérer par la fonction
