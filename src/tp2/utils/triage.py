@@ -20,7 +20,7 @@ class Triage:
         :return: dict
 
         """
-        suspect_file = [f for f in listdir(self.path)]
+        suspect_file = [f for f in listdir(self.path) if f.endswith(".bin")]
         for file in suspect_file:
             sample = Sample(f"{self.path}/{file}")
             logger.info(f"Triage de {self.path}/{file}({len(sample.data)} octets)")
