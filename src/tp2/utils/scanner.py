@@ -20,6 +20,9 @@ class YaraScanner:
             else:
                 continue
 
+        if matches == []:
+            return ["No Malware found"]
+
         return matches
 
 
