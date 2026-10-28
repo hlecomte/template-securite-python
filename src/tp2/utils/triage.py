@@ -24,6 +24,9 @@ class Triage:
 
         """
         report = {}
+
+        logger.info(f"Folder {self.path} annalisys")
+
         suspect_file = [f for f in listdir(self.path) if f.endswith(".bin")]
         for file in suspect_file:
             sample = Sample(f"{self.path}/{file}")
@@ -55,6 +58,8 @@ class Triage:
 
             logger.info(f"Done")
             logger.info(f"For {self.path}/{file} we have {len(matches)} matches")
+
+            logger.info(f"Creating summary for {self.path}/{file}...")
 
             presentation = {}
             presentation.update(meta)
