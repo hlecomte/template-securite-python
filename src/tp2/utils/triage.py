@@ -70,8 +70,13 @@ class Triage:
 
             summary = json.dumps(presentation)
             verdict = self.llm.triage(summary)
-            result = json.dumps(presentation.update(verdict))
-            report.update({presentation["sha256"] : result})
+            verdict = json.loads(verdict)
+            presentation["family_guess"] = verdict["family_guess"]
+            presentation["mitre_attacks"] = verdict["mitre_attacks"]
+            presentation["llm_summary"] = verdict["llm_summary"]
+            presentation["score"] = verdict["score"]
+
+            report.update({presentation["sha256"] : presentation})
 
         return report
 

@@ -35,6 +35,6 @@ class Report:
         """Fichier JSON lisible."""
 
         for sha256, analyse in self.result.items():
-            chemin = f"{self.out_path}/{sha256}.json"
+            chemin = f"{self.out_path}/{sha256}.triage.json"
             with open(chemin, "w", encoding="utf-8") as f:
                 json.dump(analyse, f, indent=4, ensure_ascii=False)
