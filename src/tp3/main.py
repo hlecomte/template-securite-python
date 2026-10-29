@@ -4,10 +4,6 @@ import requests
 from pathlib import Path
 from tp3.utils.config import logger
 
-
-def sentinel_dda268():
-    """Initialise le programme."""
-    return True
     
 def fuzz_endpoints(target: str) -> str | None:
     """Ajout de la fonction de fuzzing pour tester les chemins de la wordlist dans le but de trouver la page cachée."""
@@ -64,7 +60,6 @@ def breach_network(host: str, port: int, key: bytes) -> str:
 
 
 def main() -> None:
-    sentinel_dda268()
     ap = argparse.ArgumentParser()
     ap.add_argument("--target", default="http://127.0.0.1:8080")
     args = ap.parse_args()
