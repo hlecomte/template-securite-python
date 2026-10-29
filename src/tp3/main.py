@@ -4,9 +4,10 @@ import requests
 from pathlib import Path
 from tp3.utils.config import logger
 
-    
+
 def fuzz_endpoints(target: str) -> str | None:
-    """Ajout de la fonction de fuzzing pour tester les chemins de la wordlist dans le but de trouver la page cachée."""
+    """Ajout de la fonction de fuzzing pour tester
+    les chemins de la wordlist dans le but de trouver la page cachée."""
 
     wordlist = Path(__file__).parent / "wordlist.txt"
     endpoints = wordlist.read_text(encoding="utf-8").splitlines()
@@ -31,6 +32,9 @@ def fuzz_endpoints(target: str) -> str | None:
 
                 if "text/html" in content_type.lower():
                     logger.info(f"Page HTML candidate: {url}")
+
+                    if "captcha" in response.text.lower():
+                        logger.info(f"Challenge CAPTCHA trouvé: {url}")
                     return url
 
                 logger.info(f"Ressource trouvée ({content_type}) : {url}")
@@ -40,8 +44,9 @@ def fuzz_endpoints(target: str) -> str | None:
 
     return None
 
+
 def breach_web(target: str) -> tuple[str, int, bytes]:
-   """Fonction qui va trouver la page cachée puis préparer la phase CAPTCHA."""
+    """Fonction qui va trouver la page cachée puis préparer la phase CAPTCHA."""
 
     hidden_url = fuzz_endpoints(target)
 
@@ -50,14 +55,13 @@ def breach_web(target: str) -> tuple[str, int, bytes]:
         raise RuntimeError("Fuzzing : aucun endpoint trouvé")
 
     logger.info(f"Page candidate trouvée : {hidden_url}")
+
     raise NotImplementedError("CAPTCHA")
 
 
 def breach_network(host: str, port: int, key: bytes) -> str:
     """Fonction qui permet de décoder les messages TCP pour récupérer le drapeau final."""
-    
     raise NotImplementedError("Réseau")
-
 
 def main() -> None:
     ap = argparse.ArgumentParser()
