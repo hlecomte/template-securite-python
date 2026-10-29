@@ -20,17 +20,21 @@ class Captcha:
         image = image.resize(
             (image.width * 3, image.height * 3)
         )
+        
+        image = ImageOps.autocontrast(image)
 
         image = image.point(
             lambda pixel: 255 if pixel > 150 else 0
         )
+        
+        image.save("/tmp/captcha_pretraite.png")
 
         texte = pytesseract.image_to_string(
             image,
-            config="--psm 7"
+            config="--psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
         )
 
-        self.value = texte.strip()
+        self.value = texte.strip().upper()
 
     def capture(self):
         """Fonction permettant de récupérer la capture du captcha depuis le serveur."""
