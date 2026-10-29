@@ -5,8 +5,8 @@ chronométré). Voir tp3-breach-the-target.md.
 
     poetry run tp3 --target http://127.0.0.1:8080
 """
-
 import argparse
+import requests
 
 from tp3.utils.config import logger
 
