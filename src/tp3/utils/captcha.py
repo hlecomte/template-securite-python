@@ -4,6 +4,9 @@ import requests
 import pytesseract
 from PIL import Image, ImageOps
 
+from tp3.utils import session
+
+
 class Captcha:
     def __init__(self, url, session=None):
         self.url = url
@@ -11,9 +14,8 @@ class Captcha:
         self.value = ""
         self.session = session if session is not None else requests.Session()
 
-
     def solve(self):
-        """Fonction permettant l'analyse du captcha."""
+        """Fonction permettant l'analyse du captcha et de reconnaître les caractères."""
         if self.image is None:
             self.capture()
 
@@ -22,13 +24,11 @@ class Captcha:
         image = image.resize(
             (image.width * 3, image.height * 3)
         )
-        
         image = ImageOps.autocontrast(image)
 
         image = image.point(
             lambda pixel: 255 if pixel > 150 else 0
         )
-        
         image.save("/tmp/captcha_pretraite.png")
 
         texte = pytesseract.image_to_string(
