@@ -1,55 +1,41 @@
+import requests
 from src.tp3.utils.captcha import Captcha
 
 
 class Session:
-    """
-    Class representing a session to solve a captcha and submit a flag.
-
-    Attributes:
-        url (str): The URL of the captcha.
-        captcha_value (str): The value of the solved captcha.
-        flag_value (str): The value of the flag to submit.
-        valid_flag (str): The valid flag obtained after processing the response.
-    """
+    """Prépare les infos nécessaires au challenge web."""
 
     def __init__(self, url):
-        """
-        Initializes a new session with the given URL.
-
-        Args:
-            url (str): The URL of the captcha.
-        """
         self.url = url
         self.captcha_value = ""
         self.flag_value = ""
         self.valid_flag = ""
+        self.session = requests.Session()
+        self.response = None
 
     def prepare_request(self):
-        """
-        Prepares the request for sending by capturing and solving the captcha.
-        """
-        captcha = Captcha(self.url)
+        """Télécharge et résout le captcha."""
+        response = self.session.get(self.url, timeout=5)
+        response.raise_for_status()
+
+        captcha_url = requests.compat.urljoin(
+            self.url, "/captcha.png"
+        )
+        captcha = Captcha(captcha_url, self.session)
         captcha.capture()
         captcha.solve()
 
         self.captcha_value = captcha.get_value()
-        self.flag_value = "FIXME"
+        print(f"CAPTCHA reconnu: {self.captcha_value} ")
 
     def submit_request(self):
-        """
-        Sends the flag and captcha.
-        """
+        """Envoie la réponse au serveur."""
+        raise NotImplementedError("Endpoint de soumission inconnu")
 
     def process_response(self):
-        """
-        Processes the response.
-        """
+        """Analyse la réponse du serveur."""
+        raise NotImplementedError("Réponse du serveur à déterminé")
 
     def get_flag(self):
-        """
-        Returns the valid flag.
-
-        Returns:
-            str: The valid flag.
-        """
+        """Retourne le drapeau récupéré."""
         return self.valid_flag
