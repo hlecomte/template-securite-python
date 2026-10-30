@@ -29,12 +29,39 @@ class Session:
         print(f"CAPTCHA reconnu: {self.captcha_value} ")
 
     def submit_request(self):
-        """Envoie la réponse au serveur."""
-        raise NotImplementedError("Endpoint de soumission inconnu")
+        """Envoie la captcha au serveur."""
+        if not self.captcha_value:
+            raise ValueError("Aucun CAPTCHA reconnu")
+
+        self.response = self.session.post(
+            self.url,
+            data={"captcha": self.captcha_value},
+            timeout=5
+        )
+
+        print(f"Statut HTTP : {self.response.status_code}")
+        print(f"Réponse du serveur : {self.response.text}")
 
     def process_response(self):
         """Analyse la réponse du serveur."""
-        raise NotImplementedError("Réponse du serveur à déterminé")
+        if self.response is None:
+            raise ValueError("Aucune réponse du serveur")
+
+        if self.response.status_code != 200:
+            print("Erreur : CAPTCHA incorrect")
+            return
+
+        data = self.response.json()
+
+        self.valid_flag = data.get("flag1", "")
+        self.host = data.get("host", "")
+        self.port = data.get("port", 0)
+        self.key = data.get("key", "")
+
+        print(f"Flag 1 : {self.valid_flag}")
+        print(f"Adresse du serveur : {self.host}")
+        print(f"Port TCP : {self.port}")
+        print(f"Clé : {self.key}")
 
     def get_flag(self):
         """Retourne le drapeau récupéré."""
