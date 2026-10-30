@@ -71,7 +71,7 @@ def breach_web(target: str) -> tuple[str, int, bytes]:
     if not flag1:
         raise RuntimeError("FLAG1 non récupéré")
 
-    print(f"[+] FLAG1: {flag1}")
+    logger.info(f"[+] FLAG1: {flag1}")
 
     host = session.host
     port = int(session.port)

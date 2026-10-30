@@ -9,3 +9,8 @@ __pycache__/
 report.pdf
 app.log
 .env
+
+# Fichiers à exclure
+src/tp3/tp3-target/
+.DS_Store
+*.zip

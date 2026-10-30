@@ -1,6 +1,6 @@
 import requests
 from src.tp3.utils.captcha import Captcha
-
+from tp3.utils.config import logger
 
 class Session:
     """Prépare les infos nécessaires au challenge web."""
@@ -26,12 +26,12 @@ class Session:
         captcha.solve()
 
         self.captcha_value = captcha.get_value()
-        print(f"CAPTCHA reconnu: {self.captcha_value} ")
+        logger.info(f"CAPTCHA reconnu: {self.captcha_value} ")
 
     def submit_request(self):
         """Envoie la captcha au serveur."""
         if not self.captcha_value:
-            raise ValueError("Aucun CAPTCHA reconnu")
+            raise ValueError("Aucun CAPTCHAf reconnu")
 
         self.response = self.session.post(
             self.url,
@@ -39,8 +39,8 @@ class Session:
             timeout=5
         )
 
-        print(f"Statut HTTP : {self.response.status_code}")
-        print(f"Réponse du serveur : {self.response.text}")
+        logger.info(f"Statut HTTP : {self.response.status_code}")
+        logger.info(f"Réponse du serveur : {self.response.text}")
 
     def process_response(self):
         """Analyse la réponse du serveur."""
@@ -48,7 +48,7 @@ class Session:
             raise ValueError("Aucune réponse du serveur")
 
         if self.response.status_code != 200:
-            print("Erreur : CAPTCHA incorrect")
+            logger.error("Erreur : CAPTCHA incorrect")
             return
 
         data = self.response.json()
@@ -58,10 +58,10 @@ class Session:
         self.port = data.get("port", 0)
         self.key = data.get("key", "")
 
-        print(f"Flag 1 : {self.valid_flag}")
-        print(f"Adresse du serveur : {self.host}")
-        print(f"Port TCP : {self.port}")
-        print(f"Clé : {self.key}")
+        logger.info(f"Flag 1 : {self.valid_flag}")
+        logger.info(f"Adresse du serveur : {self.host}")
+        logger.info(f"Port TCP : {self.port}")
+        logger.info(f"Clé : {self.key}")
 
     def get_flag(self):
         """Retourne le drapeau récupéré."""
