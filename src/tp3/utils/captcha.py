@@ -5,11 +5,11 @@ import pytesseract
 from PIL import Image, ImageOps
 
 class Captcha:
-    def __init__(self, url):
+    def __init__(self, url, session=None):
         self.url = url
         self.image = None
         self.value = ""
-        self.session = session or requests.Session()
+        self.session = session if session is not None else requests.Session()
 
 
     def solve(self):
