@@ -27,3 +27,11 @@ Lancer le projet :
 ```bash
 poetry run tp1
 ```
+
+```bash
+poetry run tp2
+```
+
+```bash
+poetry run tp3
+```
