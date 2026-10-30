@@ -9,6 +9,8 @@ class Captcha:
         self.url = url
         self.image = None
         self.value = ""
+        self.session = session or requests.Session()
+
 
     def solve(self):
         """Fonction permettant l'analyse du captcha."""
