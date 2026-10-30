@@ -12,22 +12,9 @@ class Report:
 
     def generate_pdf(self) -> None:
         """Rapport PDF lisible (fpdf2)."""
+        return None
 
 
-        for sha256, analyse in self.result.items():
-            pdf = FPDF()
-            pdf.add_page()
-
-            pdf.set_font("Helvetica", "B", 16)
-            pdf.cell(0, 10, "Rapport de triage", new_x="LMARGIN", new_y="NEXT")
-
-            pdf.set_font("Helvetica", size=10)
-            for key, value in analyse.items():
-                texte = f"{key} : {json.dumps(value, ensure_ascii=False)}"
-                texte = texte.encode("latin-1", "replace").decode("latin-1")
-                pdf.multi_cell(0, 6, texte, new_x="LMARGIN", new_y="NEXT")
-
-            pdf.output(f"{self.out_path}/{analyse["file"]}.triage.pdf")
 
 
 

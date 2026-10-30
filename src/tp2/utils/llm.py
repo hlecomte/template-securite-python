@@ -48,7 +48,8 @@ class LLMTriage:
             "https://openrouter.ai/api/v1/chat/completions",
             headers={"Authorization": f"Bearer {os.environ['OPENROUTER_API_KEY']}"},
             json={
-                "model": "nvidia/nemotron-3.5-lightning:free",
+                #"model": "nvidia/nemotron-3.5-lightning:free",
+                "model": "google/gemma-4-26b-a4b-it:free",
                 "messages": [
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": summary},
