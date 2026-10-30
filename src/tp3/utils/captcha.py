@@ -40,7 +40,7 @@ class Captcha:
 
     def capture(self):
         """Fonction permettant de récupérer la capture du captcha depuis le serveur."""
-        response = requests.get(self.url, timeout=5)
+        response = self.session.get(self.url, timeout=5)
         response.raise_for_status()
 
         self.image = Image.open(BytesIO(response.content)).convert("RGB")
