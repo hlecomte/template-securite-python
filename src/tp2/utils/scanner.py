@@ -22,9 +22,6 @@ class YaraScanner:
             for match in rules.match(data=data):
                 matches.append(match.rule)
 
-        if matches == []:
-            return ["No Malware found"]
-
         return matches
 
 

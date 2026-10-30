@@ -22,9 +22,10 @@ class Sample:
         metadata = {}
         metadata["sha256"] = hashlib.sha256(self.data).hexdigest()
         metadata["md5"] = hashlib.md5(self.data).hexdigest()
-        metadata["taille"] = len(self.data)
-        metadata["file_type"] = magic.from_buffer(self.data)
+        metadata["size"] = len(self.data)
         metadata["entropy"] = self.shannon_entropy()
+        metadata["file_type"] = magic.from_buffer(self.data)
+
 
         logger.info("Done.")
         return metadata
@@ -67,15 +68,15 @@ class Sample:
 
         for text in TEXT:
             if re.findall(DOMAIN, text):
-                iocs["iocs"]["domains"].append(re.findall(DOMAIN, text))
+                iocs["iocs"]["domains"].extend(re.findall(DOMAIN, text))
             if re.findall(IPV4, text):
-                iocs["iocs"]["ips"].append(re.findall(IPV4, text))
+                iocs["iocs"]["ips"].extend(re.findall(IPV4, text))
             if re.findall(URL, text):
-                iocs["iocs"]["urls"].append(re.findall(URL, text))
+                iocs["iocs"]["urls"].extend(re.findall(URL, text))
             if re.findall(MUTEXT, text):
-                iocs["iocs"]["mutex"].append(re.findall(MUTEXT, text))
+                iocs["iocs"]["mutex"].extend(re.findall(MUTEXT, text))
             if re.findall(REGISTRY, text):
-                iocs["iocs"]["registry"].append(re.findall(REGISTRY, text))
+                iocs["iocs"]["registry"].extend(re.findall(REGISTRY, text))
 
         unique_domains = []
         for domain in iocs["iocs"]["domains"]:
@@ -116,7 +117,7 @@ class Sample:
         for imp in binary.imported_functions:
             imports["imports"].append(imp.name)
 
-        for sec in binary.sections:
-            imports["imports"].append(f"{sec.name} {round(sec.entropy, 2)}")
+        #for sec in binary.sections:
+        #    imports["imports"].append(f"{sec.name} {round(sec.entropy, 2)}")
 
         return imports
